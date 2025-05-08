@@ -12,13 +12,13 @@ const errcb = (...args) => console.error.bind(this, ...args);
 const UUID = process.env.UUID || 'b28f60af-d0b9-4ddf-baaa-7e49c93c380b';
 const uuid = UUID.replace(/-/g, "");
 const NEZHA_SERVER = process.env.NEZHA_SERVER || 'nezha.gvkoyeb.eu.org';
-const NEZHA_PORT = process.env.NEZHA_PORT || '443';        // 端口为443时自动开启tls
-const NEZHA_KEY = process.env.NEZHA_KEY || '';             // 哪吒三个变量不全不运行
-const DOMAIN = process.env.DOMAIN || '';  //项目域名或已反代的域名，不带前缀，建议填已反代的域名
-const NAME = process.env.NAME || 'JP-webhostmost-GCP';
+const NEZHA_PORT = process.env.NEZHA_PORT || '443';        // Automatically enable TLS when port is 443
+const NEZHA_KEY = process.env.NEZHA_KEY || '';             // Nezha will not run if all three variables are missing
+const DOMAIN = process.env.DOMAIN || '';  //Domain
+const NAME = process.env.NAME || 'CF-CDN-vless';
 const port = process.env.PORT || 3000;
 
-// 创建HTTP路由
+// Creating HTTP Routes
 const httpServer = http.createServer((req, res) => {
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -40,7 +40,7 @@ httpServer.listen(port, () => {
   console.log(`HTTP Server is running on port ${port}`);
 });
 
-// 判断系统架构
+// Determine the system architecture
 function getSystemArchitecture() {
   const arch = os.arch();
   if (arch === 'arm' || arch === 'arm64') {
@@ -50,7 +50,7 @@ function getSystemArchitecture() {
   }
 }
 
-// 下载对应系统架构的ne-zha
+// Download ne-zha corresponding to the system architecture
 function downloadFile(fileName, fileUrl, callback) {
   const filePath = path.join("./", fileName);
   const writer = fs.createWriteStream(filePath);
@@ -114,7 +114,7 @@ function getFilesForArchitecture(architecture) {
   return [];
 }
 
-// 授权并运行ne-zha
+// Authorize and run ne-zha
 function authorizeFiles() {
   const filePath = './npm';
   const newPermissions = 0o775;
@@ -124,7 +124,7 @@ function authorizeFiles() {
     } else {
       console.log(`Empowerment success:${newPermissions.toString(8)} (${newPermissions.toString(10)})`);
 
-      // 运行ne-zha
+      // Run ne-zha
       let NEZHA_TLS = '';
       if (NEZHA_SERVER && NEZHA_PORT && NEZHA_KEY) {
         if (NEZHA_PORT === '443') {
@@ -147,20 +147,20 @@ function authorizeFiles() {
 }
 downloadFiles();
 
-// WebSocket 服务器
+// WebSocket Server
 const wss = new WebSocket.Server({ server: httpServer });
 wss.on('connection', ws => {
-  console.log("WebSocket 连接成功");
+  console.log("WebSocket Connection successful");
   ws.on('message', msg => {
     if (msg.length < 18) {
-      console.error("数据长度无效");
+      console.error("Invalid data length");
       return;
     }
     try {
       const [VERSION] = msg;
       const id = msg.slice(1, 17);
       if (!id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16))) {
-        console.error("UUID 验证失败");
+        console.error("UUID Authentication failed");
         return;
       }
       let i = msg.slice(17, 18).readUInt8() + 19;
@@ -169,15 +169,15 @@ wss.on('connection', ws => {
       const host = ATYP === 1 ? msg.slice(i, i += 4).join('.') :
         (ATYP === 2 ? new TextDecoder().decode(msg.slice(i + 1, i += 1 + msg.slice(i, i + 1).readUInt8())) :
           (ATYP === 3 ? msg.slice(i, i += 16).reduce((s, b, i, a) => (i % 2 ? s.concat(a.slice(i - 1, i + 1)) : s), []).map(b => b.readUInt16BE(0).toString(16)).join(':') : ''));
-      console.log('连接到:', host, port);
+      console.log('Connect to:', host, port);
       ws.send(new Uint8Array([VERSION, 0]));
       const duplex = createWebSocketStream(ws);
       net.connect({ host, port }, function () {
         this.write(msg.slice(i));
         duplex.on('error', err => console.error("E1:", err.message)).pipe(this).on('error', err => console.error("E2:", err.message)).pipe(duplex);
-      }).on('error', err => console.error("连接错误:", err.message));
+      }).on('error', err => console.error("Connection Error:", err.message));
     } catch (err) {
-      console.error("处理消息时出错:", err.message);
+      console.error("Error processing message:", err.message);
     }
-  }).on('error', err => console.error("WebSocket 错误:", err.message));
+  }).on('error', err => console.error("WebSocket Error:", err.message));
 });
