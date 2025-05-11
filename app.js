@@ -1,3 +1,8 @@
+/*
+* Last modified: 2025-05-11 07:29:54 UTC
+* Modified by: chami2000
+*/
+
 const os = require('os');
 const http = require('http');
 const { Buffer } = require('buffer');
@@ -21,8 +26,11 @@ const port = process.env.PORT || 3000;
 // Creating HTTP Routes
 const httpServer = http.createServer((req, res) => {
   if (req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Hello, World\n');
+    // Redirect to Google.com
+    res.writeHead(302, {
+      'Location': 'https://www.google.com'
+    });
+    res.end();
   } else if (req.url === '/sub') {
     const vlessURL = `vless://${UUID}@skk.moe:443?encryption=none&security=tls&sni=${DOMAIN}&type=ws&host=${DOMAIN}&path=%2F#${NAME}`;
     
